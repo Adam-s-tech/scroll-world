@@ -1,0 +1,464 @@
+# SOP - Scroll World
+
+## Référence du projet
+
+### Dépôt GitHub original
+
+https://github.com/oso95/scroll-world
+
+### Fork renforcé
+
+https://github.com/cth9191/scroll-world
+
+### Vidéo de référence
+
+https://www.youtube.com/watch?v=KBH8P0z2AL8
+
+**Titre :** Fable 5 et GPT 5.6 ONE-SHOT - Un site web à 10 000 $ avec cette compétence
+
+---
+
+# Objectif
+
+Créer une landing page immersive pilotée par le scroll où l'utilisateur traverse un monde 3D connecté sans coupure entre les scènes.
+
+Inspirations :
+
+- Apple Scroll Experience
+- Emons Logistics
+- Expériences web immersives haut de gamme
+- Narration visuelle continue
+
+---
+
+# Résultat attendu
+
+L'utilisateur fait défiler la page.
+
+Le scroll ne déplace pas la caméra.
+
+Le scroll contrôle le temps de lecture d'une séquence vidéo continue.
+
+La caméra :
+
+- entre dans une scène
+- traverse l'univers
+- passe naturellement à la scène suivante
+- poursuit son parcours jusqu'au CTA final
+
+---
+
+# Architecture globale
+
+```text
+Brief Client
+    ↓
+Création Storyboard
+    ↓
+Scènes IA (Higgsfield)
+    ↓
+Validation artistique
+    ↓
+Vidéos de plongée
+    ↓
+Connecteurs
+    ↓
+Validation des coutures
+    ↓
+Encodage
+    ↓
+Posters
+    ↓
+Scrub Engine
+    ↓
+Landing Page
+```
+
+---
+
+# 1. Prérequis
+
+## Logiciels
+
+- Higgsfield CLI
+- ffmpeg
+- ffprobe
+- Python 3
+- Pillow (optionnel)
+
+## Authentification
+
+```bash
+higgsfield auth login
+```
+
+## Vérifications
+
+```bash
+ffmpeg -version
+ffprobe -version
+python --version
+```
+
+---
+
+# 2. Discovery Client
+
+Collecter systématiquement :
+
+## Entreprise
+
+- Nom
+- Activité
+- Produit
+- Service
+
+## Marketing
+
+- Proposition de valeur
+- Audience
+- Offre principale
+- CTA final
+
+## Branding
+
+- Logo
+- Couleurs
+- Typographies
+- Direction artistique
+
+## Univers visuel
+
+Choisir :
+
+- futuriste
+- industriel
+- luxe
+- médical
+- SaaS
+- finance
+- gaming
+- éducation
+- logistique
+
+---
+
+# 3. Construction du Storyboard
+
+Définir la séquence complète.
+
+Exemple :
+
+```text
+1. Vue générale du monde
+2. Découverte du produit
+3. Fonctionnement
+4. Bénéfices
+5. Résultats clients
+6. CTA
+```
+
+Chaque scène doit avoir :
+
+- un objectif
+- un élément visuel dominant
+- un point d'entrée
+- un point de sortie
+
+---
+
+# 4. Choix du Budget
+
+## Lean
+
+≈ 8 générations
+
+Utilisation :
+
+- prototypes
+- MVP
+- tests clients
+
+---
+
+## Standard
+
+≈ 11 à 14 générations
+
+Utilisation :
+
+- projet commercial classique
+- landing page premium
+
+---
+
+## Showcase
+
+≈ 17 générations ou plus
+
+Utilisation :
+
+- démonstration haut de gamme
+- portfolio
+- campagne marketing majeure
+
+---
+
+# 5. Création des Scènes
+
+Créer une image maître pour chaque scène.
+
+Objectifs :
+
+- cohérence graphique
+- éclairage identique
+- même univers
+- couleurs harmonisées
+
+Exemple :
+
+```text
+Scene 01
+Vue aérienne de la ville
+
+Scene 02
+Quartier principal
+
+Scene 03
+Produit présenté
+
+Scene 04
+Mise en situation
+
+Scene 05
+Résultats
+
+Scene 06
+CTA
+```
+
+---
+
+# 6. Validation Artistique
+
+Avant toute génération vidéo :
+
+Vérifier :
+
+- cohérence visuelle
+- storytelling
+- branding
+- composition
+
+Aucune vidéo ne doit être générée tant que les scènes ne sont pas validées.
+
+---
+
+# 7. Prévisualisation (Fork cth9191)
+
+Créer un rendu rapide.
+
+Objectifs :
+
+- réduire les coûts
+- détecter les erreurs narratives
+- vérifier les mouvements
+
+Corriger avant production définitive.
+
+---
+
+# 8. Génération des Vidéos de Plongée
+
+Pour chaque scène :
+
+```text
+Image
+↓
+Image-to-Video
+↓
+Dive Video
+```
+
+Le mouvement doit :
+
+- partir d'une vue large
+- se rapprocher progressivement
+- guider l'œil vers la scène suivante
+
+---
+
+# 9. Génération des Connecteurs
+
+Créer les transitions.
+
+Structure :
+
+```text
+Scene A
+↓
+Connector AB
+↓
+Scene B
+```
+
+Règle principale :
+
+Utiliser les frames réellement rendues des scènes précédentes et suivantes.
+
+Ne jamais utiliser directement les images sources.
+
+---
+
+# 10. Vérification des Coutures
+
+Objectif :
+
+Aucune rupture visuelle.
+
+Vérifications :
+
+- couleur
+- lumière
+- orientation
+- perspective
+
+Version cth9191 :
+
+- contrôle automatique SSIM
+- validation machine des raccords
+
+---
+
+# 11. Encodage
+
+Exporter :
+
+```text
+MP4
+WEBP
+```
+
+Optimiser :
+
+- fluidité
+- compression
+- temps de chargement
+
+Exemple :
+
+```bash
+ffmpeg input.mp4 output.mp4
+```
+
+---
+
+# 12. Génération des Posters
+
+Créer :
+
+- image miniature
+- image de préchargement
+- image fallback
+
+Utilisation :
+
+- lazy loading
+- SEO
+- performances
+
+---
+
+# 13. Intégration du Scrub Engine
+
+Fichier principal :
+
+```text
+scrub-engine.js
+```
+
+Fonctions :
+
+- lecture pilotée par scroll
+- lazy loading
+- seek dynamique
+- fusion des clips
+- crossfade
+
+Le moteur doit rester indépendant du framework.
+
+Compatible :
+
+- HTML
+- Next.js
+- React
+- Vue
+- Astro
+
+---
+
+# 14. Optimisation Mobile
+
+## Smartphone
+
+- 720p
+
+## Tablette
+
+- 1080p
+
+## Desktop
+
+- qualité maximale
+
+---
+
+# 15. Gestion des Fallbacks
+
+Prévoir :
+
+## iOS Low Power Mode
+
+Version allégée.
+
+## Data Saver
+
+Version compressée.
+
+## Mauvaise connexion
+
+Affichage poster uniquement.
+
+---
+
+# 16. SEO
+
+Produire :
+
+## Meta
+
+- title
+- description
+
+## Structure
+
+- H1
+- H2
+- H3
+
+## Contenu
+
+- introduction
+- bénéfices
+- FAQ
+- appel à l'action
+
+---
+
+# Structure des Fichiers
+
+```text
+project/
+│
+├── assets/
+│   ├─
