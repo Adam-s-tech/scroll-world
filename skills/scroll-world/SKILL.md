@@ -48,7 +48,12 @@ not the framework.
 2. **ffmpeg / ffprobe** on `$PATH` (frame extraction + encoding).
 3. **An image tool** for background knockout if you want floating scenes: PIL
    (`python3 -c "import PIL"`), or `cwebp`/`sips`. Optional — see Step 3.
-4. Caveats: macOS ships **bash 3.2** (no `declare -A`); don't use associative arrays in
+4. **(Optional) Codex CLI** — if `codex` is on `$PATH` (≥ 0.125) and
+   `codex login status` reports a ChatGPT login, the scene stills can be generated
+   through Codex's built-in `image_gen` (the same gpt-image-2 model) billed to the
+   user's ChatGPT subscription instead of Higgsfield credits — offer it at
+   Step 1.6, command in Step 2. Absence just removes the option.
+5. Caveats: macOS ships **bash 3.2** (no `declare -A`); don't use associative arrays in
    scripts. Higgsfield generations take **3–8 min each** — always run them detached
    (background) and poll, never a foreground blocking call. Reference-by-job-UUID is
    rejected by media flags — pass **local file paths** to `--image/--start-image/--end-image`.
@@ -89,27 +94,64 @@ default. Cover:
    the hero product. Each section needs: a short subject description (what's IN the
    diorama), an eyebrow, a headline, one line of body, and 0–3 tag pills. The last
    section is usually the hero product + the CTA.
-5. **Mobile version (beta) — ALWAYS ask this; never silently generate both.** Ask as a
+5. **Mobile version — ALWAYS ask this; never silently generate both.** Ask as a
    two-option choice (`AskUserQuestion` in Claude Code; a plain question elsewhere):
-   *"Want a mobile-optimized version too? Mobile support is in
-   **beta** — the scroll-scrub mechanic is desktop-native; on phones you get lighter
-   encodes and engine hardening, but portrait crops the 16:9 frame and low-end devices
-   may still stutter."* Options: "Desktop only" / "Desktop + mobile (beta)". The beta
-   disclaimer must be stated to the user, not just implied. What the answer gates:
-   - **Yes** → produce the `-m.mp4` mobile encodes (Step 6) and wire
-     `clipMobile`/`connectorsMobile` (Step 7); run the full mobile QA (Step 8). If any
-     scene's focal subject sits off-centre, offer the 9:16 hero-variant escape hatch
-     (extra Higgsfield credits — say so).
+   *"Want a mobile-optimized version too? The mobile version is a second camera chain
+   rendered natively in **9:16 portrait** — composed for phones, not a crop of the
+   landscape film — which roughly doubles the Higgsfield credit spend (state the
+   estimated number)."*
+   Options: "Desktop only" / "Desktop + mobile (native 9:16 — ~2× credits)". The
+   credit cost must be stated to the user, not just implied.
+   What the answer gates:
+   - **Yes** → render the parallel 9:16 portrait chain and ship it as the mobile variants
+     (Step 6 / pipeline.md §6b): portrait start canvases → 9:16 dives + connectors
+     frame-locked against their own renders → 720-wide `-m.mp4` encodes → `stillMobile`
+     portrait posters. Wire `clipMobile`/`connectorsMobile`/`stillMobile` (Step 7); run
+     the full mobile QA (Step 8). Budget ~2N-1 extra video gens + NSFW re-rolls.
+     **Never ship the centre-crop as the mobile version by default** — if credits can't
+     cover the portrait chain, say so and offer the crop encodes (pipeline.md §6) as an
+     explicitly-labelled stopgap the user must approve.
    - **No** → skip the mobile encodes and wiring entirely. The engine's phone hardening
      (seek-coalescing, iOS priming, safe-area CSS) is always on regardless — that's not
      a "mobile version," it's just the page not breaking when a phone visits — so a
      desktop-only build still degrades gracefully.
 
-Video model is **not** an interview question — default `seedance_2_0` silently. If the user
-names a preference, honor it **only if it can frame-lock seams** (Step 4 roster:
-`seedance_2_0`, `kling3_0`, `seedance_2_0_mini`). This skill only ships seamless output, so
-a model that can't frame-lock is declined with a one-line why, not substituted in — use a
-roster model instead.
+6. **Budget — engines shown by cost, decided before anything renders.** Present the
+   render tiers (`AskUserQuestion`), then compute and state the estimated total for
+   the user's N scenes — `N stills + (2N−1) videos [videos ×2 if mobile] + ~15%
+   re-roll headroom` — and get a go before generating.
+   - **Video tier** (roster only — every option frame-locks seams, Step 4):
+
+     | Tier | Model | Rough cost |
+     |---|---|---|
+     | Draft / previz | `seedance_2_0_mini` (720p) | ~¼ of Standard |
+     | Standard (default) | `seedance_2_0` (1080p) | baseline |
+     | Alternate | `kling3_0` (720p native) | ≈ Standard; different look + content filter |
+
+     Draft doubles as the previz path: run the whole chain cheap, approve the
+     journey, re-render final legs on Standard (pipeline.md Notes) — suggest it
+     unprompted when the balance reads tight.
+   - **Stills source** (only offer if the Codex CLI is present, Step 0.4):
+     Higgsfield `gpt_image_2` (spends credits) vs **Codex `image_gen`** — the same
+     gpt-image-2 model billed to the ChatGPT subscription (zero credits; counts
+     toward Codex usage limits; 1536×1024 output — exactly 3:2, slightly under
+     Higgsfield's 2k). Stills are plain PNGs handed to `--start-image`, so the
+     video chain is indifferent to their source. Command in Step 2. **One source
+     for all N stills of a build** — the two render with slightly different
+     character (verified: Codex runs warmer/lighter), and mixing sources across
+     scenes reads as style drift, same reason the video chain uses one model.
+   - **Calibrate costs, don't guess.** The CLI exposes no pricing and plans differ.
+     Run ONE still and ONE video first, diff `higgsfield workspace list` before/
+     after, extrapolate to the full run, and warn the user whenever the estimate
+     exceeds ~70% of the balance. (Observed on a plus plan, 2026-07: Standard
+     video ≈ 40–55 credits, still ≈ 15.) A real `not_enough_credits` mid-run is
+     recoverable (finished clips survive; resume after top-up) but ugly — the
+     whole point of this step is that the user decides *before* the spend.
+
+If the user names a video model outside the roster, honor it **only if it can
+frame-lock seams** (Step 4). This skill only ships seamless output, so a model that
+can't frame-lock is declined with a one-line why, not substituted in — use a roster
+model instead.
 
 Keep the scroll mechanic fixed (continuous fly-through) — that's the point of the skill.
 See `references/prompts.md` for the intake checklist and copy structure.
@@ -135,6 +177,20 @@ Subject: <what is in THIS diorama>.
 - Run all N concurrently, detached. Command per scene:
   `higgsfield generate create gpt_image_2 --prompt "$(cat scene_i.txt)" --aspect_ratio 3:2 --resolution 2k --quality high --wait --wait-timeout 15m --json > scene_i.json 2>scene_i.err`
 - Result URL is `.[]0.result_url` in the `--wait --json` output. `curl` it down.
+- **Codex stills variant** (if chosen at Step 1.6 — subscription-billed, zero
+  credits): same prompt files, same byte-identical preamble, generated by Codex's
+  built-in `image_gen`:
+
+  ```bash
+  codex exec -C "$WORK" -s workspace-write --skip-git-repo-check \
+    'Use the image generation tool ($imagegen) to generate: '"$(cat "$WORK/still_i.txt")"' Wide 3:2 landscape, high resolution. Save it as ./still_i.png. Do not do anything else.'
+  ```
+
+  Single-quote the `$imagegen` segment (the shell must not expand it); if editing
+  with reference images, the prompt goes BEFORE any `-i` flag (it's variadic).
+  ~1–3 min per image; run a few in parallel, not all N at once. Output lands at
+  1536×1024 (3:2) — fine for `--start-image` and posters. Everything downstream
+  (cohesion review, knockout, dives) is unchanged.
 - A generation may fail transiently (HTTP 503) — re-roll that one individually; don't
   restart the batch.
 - **Review the stills before continuing.** They must read as one cohesive world (same
@@ -364,15 +420,17 @@ ffmpeg -i src.mp4 -an -vf "unsharp=5:5:0.8:5:5:0.0" \
 
 Encode all 2N-1 clips (dives + connectors) with the same settings for uniform quality.
 
-**Mobile encodes (beta — only if the user opted in at Step 1.5).** Phone video decoders seek
-far slower than a laptop's, and seek cost scales with GOP length, so the 1080p `-g 8` master
-that scrubs smoothly on desktop can stutter on a phone. Produce a lighter `-m.mp4` sibling for
-every clip — **720p, `-g 4`** (more keyframes = cheaper seeks), crf 23 — and wire them as
-`clipMobile` / `connectorsMobile` (Step 7). The engine serves them automatically on phones and
-falls back to the desktop clip when absent. The exact `encm()` script is in
-`references/pipeline.md` §6. If the user chose desktop-only, skip this — the engine still
-hardens phone scrubbing regardless (seek-coalescing, iOS priming), so the page degrades
-gracefully rather than breaking.
+**Mobile encodes (only if the user opted in at Step 1.5).** The mobile version is
+the **native 9:16 portrait chain** (pipeline.md §6b): portrait renders of every dive and
+connector, encoded **720 wide (`scale=720:-2`), `-g 4`** (more keyframes = cheaper seeks —
+phone decoders' seek cost scales with GOP length), crf 23 — wired as `clipMobile` /
+`connectorsMobile`, with each portrait dive's first frame extracted as the section's
+`stillMobile` poster (Step 7). The engine serves them automatically on phones and falls
+back to the desktop clip when absent. The 16:9 centre-crop `encm()` encodes
+(pipeline.md §6) are a **fallback only** — for when credits can't cover the portrait
+chain — and shipping them must be called out to the user, never silent. If the user chose
+desktop-only, skip this — the engine still hardens phone scrubbing regardless
+(seek-coalescing, iOS priming), so the page degrades gracefully rather than breaking.
 
 ---
 
@@ -388,14 +446,16 @@ mountScrollWorld(document.getElementById('world'), {
   diveScroll: 1.3, connScroll: 0.9,          // viewport-heights of scroll per clip
   sections: [
     { id:'farm', label:'The Farms', still:'assets/farm.webp',
-      clip:'assets/vid/farm.mp4', clipMobile:'assets/vid/farm-m.mp4',   // mobile beta only
+      clip:'assets/vid/farm.mp4',
+      clipMobile:'assets/vid/farm-m.mp4',      // mobile opt-in only: native 9:16 render
+      stillMobile:'assets/farm-m.webp',        // its first frame as the portrait poster
       scroll: 1.6, linger: 0.45,   // optional pacing: longer dwell + camera settles mid-scene
       accent:'#8FB98A', eyebrow:'From leaf to last sip', title:'It starts in the hills.',
       body:'…', tags:['Single-origin','Hand-picked'] },
     // …one per section; last may carry a `cta`
   ],
   connectors:       ['assets/vid/conn1.mp4','assets/vid/conn2.mp4',   /* … length = sections-1 */],
-  connectorsMobile: ['assets/vid/conn1-m.mp4','assets/vid/conn2-m.mp4' /* … same length; mobile beta only */],
+  connectorsMobile: ['assets/vid/conn1-m.mp4','assets/vid/conn2-m.mp4' /* … same length; mobile opt-in only */],
 });
 ```
 
@@ -417,8 +477,8 @@ freezing the clip), **keeps the still as a poster until the clip paints its firs
 and **primes each video on first touch** (fixes iOS's blank-until-played video), drops the
 drifting particles, ignores URL-bar-only resizes (no scroll jump), and uses safe-area
 insets so copy clears the notch/home indicator. All of this hardening is on by default —
-no config needed. The `clipMobile`/`connectorsMobile` encodes are the opt-in **mobile
-beta** part (Step 1.5): only wire them when the user asked for the mobile version.
+no config needed. The `clipMobile`/`connectorsMobile` encodes are the opt-in part
+(Step 1.5): only wire them when the user asked for the mobile version.
 
 For non-JS backends (Python/Rails/etc.): serve the assets and drop the engine `<script>`
 into the rendered HTML; nothing about it is framework-specific.
@@ -436,22 +496,25 @@ is the thing most likely to be wrong:
   the crossfade band is too short.
 - Check the console for errors, confirm `video.seekable.end(0) > 0` (blob working), and
   that `currentTime` tracks scroll across each clip's band.
-- **Mobile — full checklist only if the user opted into the mobile beta (Step 1.5).**
+- **Mobile — full checklist only if the user opted into the mobile version (Step 1.5).**
   For a desktop-only build, just sanity-check a phone viewport once: page loads, still
   posters show, nothing overlaps — the engine's hardening covers graceful degradation.
-  For the beta (do this on a real phone or an emulated one, portrait + landscape):
+  For the mobile build (do this on a real phone or an emulated one, portrait + landscape):
   - Emulate a phone viewport **with CPU throttled 4–6×** and scroll fast — the clip should
     track without freezing (the seek-coalescing + `-m.mp4` encodes are what make this hold).
   - Confirm the first scene shows immediately (its still is the poster) and the video takes
     over the instant you scroll — no blank/black scene (the iOS priming fix). Test iOS Safari
     specifically; it's the one that goes blank if this regresses.
   - Verify the `-m.mp4` variant is actually served on mobile (Network panel), and the
-    heavy 1080p master on desktop.
+    heavy 1080p master on desktop. The mobile clips must be **natively portrait**
+    (`videoWidth < videoHeight` — not a downscaled 16:9 file), and the `stillMobile`
+    posters must be served and match each portrait clip's first frame (no
+    landscape→portrait flash when the video paints).
   - Slowly scroll so the URL bar collapses — the page must **not jump** (height-only resizes
     are ignored on touch). Rotate the device — layout should recompose cleanly.
-  - Portrait crops a 16:9 clip to its centre; confirm the focal subject still reads. If a
-    hero scene's subject sits off-centre and gets cut, recompose it (prompts.md) or generate
-    a 9:16 variant for that scene.
+  - Only if the crop **fallback** shipped (no credits for the portrait chain): portrait
+    crops a 16:9 clip to its centre — confirm the focal subject still reads, and remind
+    the user this is the stopgap, not the mobile version.
 - Check reduced-motion (should fall back to the stills, no video, no particles).
 
 ---
@@ -506,10 +569,11 @@ is the thing most likely to be wrong:
 - **Copy hidden behind the URL bar / notch on mobile** → use the engine's safe-area-aware
   bottom offset (`env(safe-area-inset-bottom)` + `dvh`); make sure the page's
   `<meta viewport>` includes `viewport-fit=cover` (the template does).
-- **Portrait crops the scene** → a 16:9 clip on a tall phone shows only its centre. Keep each
-  scene's focal subject centred with a little headroom (prompts.md), or generate a 9:16 hero
-  for the scenes that matter most. The engine centre-crops (`object-fit:cover`); it can't
-  un-crop a widescreen composition.
+- **Portrait crops the scene** → a 16:9 clip on a tall phone shows only its centre — which
+  is why the mobile version is the native 9:16 chain (§6b), never the crop. If you're seeing
+  this on a mobile build, either the crop fallback shipped (call it out to the user) or the
+  9:16 encodes aren't actually being served (check `videoWidth < videoHeight`). Keeping each
+  scene's focal subject centred (prompts.md) still matters for the desktop film itself.
 - **`--generate-audio` errors on seedance** → omit it; mute in HTML and `-an` on encode.
 - **Kling rejects your flags** → `kling3_0` has **no `--resolution` param** (don't pass
   one; encode at whatever native res ffprobe reports) and **sound defaults on** — pass
@@ -521,6 +585,10 @@ is the thing most likely to be wrong:
 - **White-box scenes** → `gpt_image_2` returns a solid bg; either match the page bg to it
   or knock it out (Step 3).
 - **bash 3.2** on macOS → no associative arrays in scripts.
+- **Connector grabs the wrong scene's frames** (or errors on a frame that doesn't exist
+  yet) → the array loop ran in **zsh** (macOS default interactive shell), where arrays are
+  1-indexed, not bash's 0-indexed. Keep every array-driven chain step in a `#!/bin/bash`
+  script run via `bash script.sh` — never inline array loops in the interactive shell.
 
 ## References
 

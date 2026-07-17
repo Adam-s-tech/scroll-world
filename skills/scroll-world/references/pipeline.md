@@ -39,6 +39,18 @@ gen_still() { # name
 for n in $NAMES; do gen_still "$n" & done ; wait
 ```
 
+Codex variant (STILLS_SOURCE=codex, SKILL Step 1.6 — subscription-billed, zero
+credits; ~1–3 min each, parallelize in small batches):
+
+```bash
+gen_still_codex() { # name
+  codex exec -C "$WORK" -s workspace-write --skip-git-repo-check \
+    'Use the image generation tool ($imagegen) to generate: '"$(cat "$WORK/still_$1.txt")"' Wide 3:2 landscape, high resolution. Save it as ./still_'"$1"'.png. Do not do anything else.' \
+    > "$WORK/still_$1.codex.log" 2>&1
+  [ -f "$WORK/still_$1.png" ] && echo "still $1 ok (codex)" || echo "still $1 FAIL (see .codex.log)"
+}
+```
+
 Convert to webp for the site (and optionally run knockout.py first for transparency):
 
 ```bash
@@ -119,13 +131,17 @@ i=0; for f in "$WORK"/conn_*.mp4; do i=$((i+1)); enc "$f" "$ASSETS/vid/conn$i.mp
 Now the engine config's `sections[k].clip = assets/vid/<name>.mp4` and
 `connectors = [assets/vid/conn1.mp4, …]` (length N-1, in order).
 
-## 6. Mobile encodes (Step 6) — mobile beta, only if the user opted in
+## 6. Centre-crop mobile encodes — FALLBACK ONLY, not the mobile version
 
-**Skip this section unless the user chose the mobile (beta) version in the Step 1
-interview.** Scrubbing sets `currentTime` every frame, and a phone decoder's **seek cost scales with
-how many frames it must decode from the nearest keyframe** — so a 1080p `-g 8` master
-that scrubs fine on a laptop stutters on a phone. A **smaller frame + tighter GOP** fixes
-that (and halves the bytes on cellular). Produce a `-m.mp4` sibling for every clip:
+**The mobile version is the native 9:16 portrait chain (§6b).** This section's crop
+encodes exist for one case: the user opted into mobile but credits can't cover the
+portrait chain — and shipping them must be called out and approved, never silent
+(portrait phones will see the landscape film's centre ~26%). The encode mechanics
+matter either way: scrubbing sets `currentTime` every frame, and a phone decoder's
+**seek cost scales with how many frames it must decode from the nearest keyframe** — so
+a 1080p `-g 8` master that scrubs fine on a laptop stutters on a phone. A **smaller
+frame + tighter GOP** fixes that (and halves the bytes on cellular). The crop `-m.mp4`
+sibling per clip:
 
 ```bash
 # 720p, GOP 4 (twice the keyframes = ~half the seek-decode work), crf 23, same sharpen/faststart.
@@ -150,6 +166,33 @@ If phone scrubbing still stutters, tighten the GOP further (`-g 2`, or `-g 1` fo
 `crf` (24–26) or drop to `scale=-2:600`. If the master is already 720p (e.g. kling3_0 std),
 the mobile encode still pays off — the tighter GOP is what makes phone seeks cheap. All-mobile encodes stay 16:9 — the engine
 centre-crops them; see the portrait note in SKILL Step 8 / prompts.md.
+
+## 6b. Native 9:16 portrait chain — THE mobile version (Step 1.5 opt-in)
+
+When the user opts into mobile, this is what they get: a **parallel 9:16 chain** rendered
+natively for phones and shipped as the mobile variants — never the §6 crops (those are the
+no-credits stopgap). Same seam laws as the main chain — the portrait chain frame-locks
+against its own rendered frames, never the landscape ones. Budget ~2N-1 video gens +
+re-rolls (interiors trip the NSFW filter in portrait too); state the credit cost at the
+Step 1.5 interview.
+
+1. **Portrait start canvases.** Don't hand the video model a 3:2 still and hope: composite
+   each scene onto a 1080×1920 canvas in the page bg colour (island at ~94% width, visual
+   centre at ~45% height). The render then opens exactly on what the portrait poster shows.
+   For knocked-out stills, composite the RGBA over the bg colour first.
+2. **Dives/legs**: same prompt templates with a portrait clause up front ("Vertical
+   portrait composition, the diorama centered with generous [bg] space above and below"),
+   `--aspect_ratio 9:16`, same model/params as the main chain. Review each last frame
+   before chaining, as ever.
+3. **Connectors**: extract first/last frames **from the 9:16 renders** and generate 9:16
+   connectors between them. A native 9:16 scene mixed into cropped-16:9 neighbours pops at
+   both seams — the portrait chain must be complete, not partial.
+4. **Encode** with the §6 settings but portrait-oriented scale: `scale=720:-2` (720 wide),
+   `-g 4`, crf 23 → these ARE the `-m.mp4` mobile files (and they replace any §6 crop
+   stopgaps that shipped earlier).
+5. **Posters**: extract each 9:16 dive's first frame → webp → wire as the section's
+   `stillMobile` so the poster matches the portrait video's frame 0 (no landscape→portrait
+   flash when the clip paints). Engine support: `sections[k].stillMobile`.
 
 ## Notes
 
